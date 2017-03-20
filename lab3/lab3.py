@@ -14,7 +14,7 @@ from util import INFINITY
 #      1. MM will play better than AB.
 #      2. AB will play better than MM.
 #      3. They will play with the same level of skill.
-ANSWER1 = 0
+ANSWER1 = 3
 
 # 1.2. Two computerized players are playing a game with a time limit. Player MM
 # does minimax search with iterative deepening, and player AB does alpha-beta
@@ -24,7 +24,7 @@ ANSWER1 = 0
 #   1. MM will play better than AB.
 #   2. AB will play better than MM.
 #   3. They will play with the same level of skill.
-ANSWER2 = 0
+ANSWER2 = 2
 
 ### 2. Connect Four
 from connectfour import *
@@ -46,6 +46,16 @@ import tree_searcher
 ## Or watch the computer play against itself:
 #run_game(basic_player, basic_player)
 
+def focused_evaluate_helper(board):
+    if board.is_game_over():
+        if board.is_win() == board.get_current_player_id():
+            return 1000
+        else:
+            return -1000
+    else: # Game not over
+        return 0
+
+
 ## Change this evaluation function so that it tries to win as soon as possible,
 ## or lose as late as possible, when it decides that one side is certain to win.
 ## You don't have to change how it evaluates non-winning positions.
@@ -56,8 +66,13 @@ def focused_evaluate(board):
     that board is for the current player.
     A return value >= 1000 means that the current player has won;
     a return value <= -1000 means that the current player has lost
-    """    
-    raise NotImplementedError
+    """
+    if focused_evaluate_helper(board) == 0:
+        return 0
+    else:
+        for move, new_board in get_all_next_moves(board):
+            return -focused_evaluate_helper(new_board)
+
 
 
 ## Create a "player" function that uses the focused_evaluate function
@@ -66,6 +81,25 @@ quick_to_win_player = lambda board: minimax(board, depth=4,
 
 ## You can try out your new evaluation function by uncommenting this line:
 #run_game(basic_player, quick_to_win_player)
+
+
+def alpha_beta_search_helper(board, depth, eval_fn, alpha, beta, get_next_moves_fn=get_all_next_moves, is_terminal_fn=is_terminal):
+    
+    if is_terminal_fn(depth, board):
+        return eval_fn(board)
+
+    for move, new_board in get_next_moves_fn(board):
+        val = -1 * alpha_beta_search_helper(new_board, depth-1, eval_fn, -beta, -alpha,
+                                            get_next_moves_fn, is_terminal_fn)
+
+        if val > alpha:
+            alpha = val
+
+        if alpha >= beta:
+            break
+
+    return alpha
+
 
 ## Write an alpha-beta-search procedure that acts like the minimax-search
 ## procedure, but uses alpha-beta pruning to avoid searching bad ideas
@@ -81,8 +115,25 @@ def alpha_beta_search(board, depth,
                       # The default functions set here will work
                       # for connect_four.
                       get_next_moves_fn=get_all_next_moves,
-		      is_terminal_fn=is_terminal):
-    raise NotImplementedError
+              is_terminal_fn=is_terminal):
+    
+    alpha = NEG_INFINITY
+    beta = INFINITY
+
+    best_val = None
+
+    for move, new_board in get_next_moves_fn(board):
+        val = -1 * alpha_beta_search_helper(new_board, depth-1, eval_fn, -beta, -alpha,
+                                            get_next_moves_fn, is_terminal_fn)
+
+        if best_val == None or val > alpha:
+            alpha = val
+            best_val = (move, new_board)
+
+    #print "best_val[0]=" + str(best_val[0]) + ", alpha=" + str(alpha)
+    #print best_val[1]
+    return best_val[0]
+    
 
 ## Now you should be able to search twice as deep in the same amount of time.
 ## (Of course, this alpha-beta-player won't work until you've defined
@@ -104,14 +155,36 @@ ab_iterative_player = lambda board: \
 ## simple-evaluate (or focused-evaluate) while searching to the
 ## same depth.
 
+import itertools
+
 def better_evaluate(board):
-    raise NotImplementedError
+
+    if board.is_game_over():
+        return -1000
+
+    score = 0
+    for move1, new_board1 in get_all_next_moves(board):
+        if new_board1.is_game_over():
+            score += 1000
+
+    score += board.longest_chain(board.get_current_player_id()) * 10
+
+    for col in range(7):
+        for row in range(6):
+            if board.get_cell(row, col) == board.get_current_player_id():
+                score -= abs(3-col)
+                score += abs(row)
+            elif board.get_cell(row, col) == board.get_other_player_id():
+                score += abs(3-col)
+                score -= abs(row)
+    return score
+
 
 # Comment this line after you've fully implemented better_evaluate
-better_evaluate = memoize(basic_evaluate)
+#better_evaluate = memoize(basic_evaluate)
 
 # Uncomment this line to make your better_evaluate run faster.
-# better_evaluate = memoize(better_evaluate)
+better_evaluate = memoize(better_evaluate)
 
 # For debugging: Change this if-guard to True, to unit-test
 # your better_evaluate function.
@@ -147,6 +220,7 @@ your_player = lambda board: run_search_function(board,
 ## Uncomment this (or run it in the command window) to see how you do
 ## on the tournament that will be graded.
 #run_game(your_player, basic_player)
+#run_game(your_player, human_player)
 
 ## These three functions are used by the tester; please don't modify them!
 def run_test_game(player1, player2, board):
@@ -172,9 +246,9 @@ def run_test_tree_search(search, board, depth):
 COMPETE = (None)
 
 ## The standard survey questions.
-HOW_MANY_HOURS_THIS_PSET_TOOK = ""
-WHAT_I_FOUND_INTERESTING = ""
-WHAT_I_FOUND_BORING = ""
-NAME = ""
-EMAIL = ""
+HOW_MANY_HOURS_THIS_PSET_TOOK = "3"
+WHAT_I_FOUND_INTERESTING = "All"
+WHAT_I_FOUND_BORING = "None"
+NAME = "Brennan N"
+EMAIL = "@"
 
